@@ -37,19 +37,34 @@ app.on('window-all-closed', () => {
 
 ipcMain.handle('fetch-captions', async (event, totalUrl) => {
     try {
-        logger.info(`totalUrl ${totalUrl}`)
+        logger.info(`totalUrl ${totalUrl}`);
 
-        const videoId = extractVideoId(totalUrl)
+        const videoId = extractVideoId(totalUrl);
         const videoTitle = await fetchVideoTitle(totalUrl);
         const sanitizedTitle = videoTitle.replace(/[\\/:*?"<>|]/g, "");
         const captions = await getSubtitles({ videoID: videoId, lang: 'ko' });
 
-        const textToSave = captions.map(caption => caption.text).join('\n');
+        const textArray = captions.map(caption => caption.text);
+        let textToSave = "";
+        let fileCount = 1;
 
         const userDownloadsPath = path.join(os.homedir(), 'Downloads');
-        const savePath = path.join(userDownloadsPath, `${sanitizedTitle}.txt`);
 
-        fs.writeFileSync(savePath, textToSave, 'utf8');
+        for (let i = 0; i < textArray.length; i++) {
+            if ((textToSave + textArray[i]).length >= 1000) {
+                const savePath = path.join(userDownloadsPath, `${sanitizedTitle} - ${fileCount}.txt`);
+                fs.writeFileSync(savePath, textToSave, 'utf8');
+                textToSave = "";
+                fileCount++;
+            }
+            textToSave += textArray[i] + '\n';
+        }
+
+        if (textToSave) {
+            const savePath = path.join(userDownloadsPath, `${sanitizedTitle} - ${fileCount}.txt`);
+            fs.writeFileSync(savePath, textToSave, 'utf8');
+        }
+
         return 'Captions saved successfully!';
 
     } catch (error) {
@@ -57,6 +72,7 @@ ipcMain.handle('fetch-captions', async (event, totalUrl) => {
         return `Error fetching captions: ${error.message}`;
     }
 });
+
 
 function extractVideoId(input) {
     const videoIdMatch = input.match(/v=([a-zA-Z0-9_-]+)/);
