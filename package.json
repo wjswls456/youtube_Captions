@@ -20,6 +20,7 @@
     "axios": "^1.4.0",
     "electron-builder": "^24.6.3",
     "fs": "^0.0.1-security",
+    "log4js": "^6.9.1",
     "youtube-captions-scraper": "^2.0.0"
   }
 }

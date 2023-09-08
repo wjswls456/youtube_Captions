@@ -4,8 +4,11 @@
     <title>YouTube Captions Downloader</title>
 </head>
 <body>
-    <h3>Enter YouTube Video ID:</h3>
-    <input type="text" id="videoIdInput">
-    <button onclick="downloadCaptions()">Download Captions</button>
+    <h3>Enter YouTube Video URL:</h3>
+    <input type="text" id="urlInput">
+    <button id="displayUrlTitleId">Get Video Title</button>
+    <ul id="videoList"></ul>
+    <button id="downloadCaptionsId">Download Captions</button>
+    <ui id="videoListTotalUrl" style="display: none;"></ui>
 </body>
 </html>

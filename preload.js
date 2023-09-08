@@ -1,46 +1,105 @@
-const { remote } = require('electron');
-const fs = require('fs');
-const axios = require('axios');
-const { getSubtitles } = require('youtube-captions-scraper');
+const { ipcRenderer } = require('electron');
 
-window.fs = fs;
-window.axios = axios;
-window.getSubtitles = getSubtitles;
+document.addEventListener('DOMContentLoaded', function () {
 
-async function fetchVideoTitle(videoId) {
-    const url = `https://www.youtube.com/watch?v=${videoId}`;
-    const response = await axios.get(url);
-    const match = response.data.match(/<title>(.*?)<\/title>/);
-    return match && match[1] ? match[1].replace(" - YouTube", "").trim() : videoId;
-}
+    // youtube 대본 다운로드
+    const downloadCaptionsId_button = document.getElementById('downloadCaptionsId');
+    const videoListTotalUrlList = document.getElementById('videoListTotalUrl');
 
-async function downloadCaptions() {
-    const videoId = document.getElementById('videoIdInput').value;
-    if (!videoId) {
-        alert('Please enter a valid Video ID!');
-        return;
-    }
 
-    try {
-        const videoTitle = await fetchVideoTitle(videoId);
-        const sanitizedTitle = videoTitle.replace(/[\\/:*?"<>|]/g, ""); // 파일명으로 사용할 수 없는 문자 제거
+    
 
-        const captions = await getSubtitles({ videoID: videoId, lang: 'ko' });
 
-        const textToSave = captions.map(caption => caption.text).join('\n');
+    downloadCaptionsId_button.addEventListener('click', async function () {
+        const urlItems = document.querySelectorAll('.url-item');
+        // 첫 번째 child node (텍스트 노드)의 값만 가져옵니다.
+        const liTextArray = Array.from(urlItems).map(li => li.childNodes[0].nodeValue.trim());
+        
+        if (liTextArray.length == 0) {
+            alert('Please check youtube Title');
+            return;
+        }
+        try {
+            let successCount = 0;
+            for(const totalUrl of liTextArray){
+                const resultMessage = await ipcRenderer.invoke('fetch-captions', totalUrl);
+                if(resultMessage == "Captions saved successfully!"){
+                    successCount++;
+                }
+            }
+            
+            alert("Captions saved successfully!");
+        } catch (error) {
+            alert(`Error fetching captions: ${error}`);
+        }
+    });
 
-        const savePath = remote.dialog.showSaveDialogSync({
-            defaultPath: `${sanitizedTitle}.txt`
-        });
-
-        if (savePath) {
-            fs.writeFileSync(savePath, textToSave, 'utf8');
-            alert('Captions saved successfully!');
+    const displayUrlTitleId_button = document.getElementById('displayUrlTitleId');
+    displayUrlTitleId_button.addEventListener('click', async function () {
+        const totalUrl = document.getElementById('urlInput').value;
+        // 빈 값 체크
+        if (!totalUrl) {
+            alert('Please enter a valid Youtube_URL!!');
+            return;
         }
 
-    } catch (error) {
-        alert(`Error fetching captions: ${error}`);
-    }
-}
 
-window.downloadCaptions = downloadCaptions;
+
+        let title = "";
+        try {
+             title = await ipcRenderer.invoke('fetch-video-title',totalUrl);    
+        } catch (error) {
+            alert('Please enter a valid Youtube_URL!!');
+            return;
+        }
+
+        const titleItems = document.querySelectorAll('.title-item');
+        // 첫 번째 child node (텍스트 노드)의 값만 가져옵니다.
+        const titleTextArray = Array.from(titleItems).map(li => li.childNodes[0].nodeValue.trim());
+
+        
+        if(titleTextArray.includes(title)){
+            alert('Please duplication Youtube title')
+            return;
+        }
+        
+
+
+        const listItem = document.createElement('li');
+        listItem.classList.add('title-item');  // title-item 클래스 추가
+        listItem.textContent = title;
+
+        const addButton = document.createElement('button');
+        addButton.textContent = "Add";
+
+        const urlListItem = document.createElement('li');
+        urlListItem.classList.add('url-item');  // url-item 클래스 추가
+        urlListItem.textContent = totalUrl;
+        
+
+        addButton.onclick = function() {
+            
+            // urlArray.push(totalUrl);
+            listItem.style.color = "green";  // 예를 들어, 녹색으로 변경
+            listItem.removeChild(addButton);  // Remove the add button once added
+            videoListTotalUrlList.appendChild(urlListItem);
+        };
+        listItem.appendChild(addButton);
+        
+
+        const minusButton = document.createElement('button');
+        minusButton.textContent = "minus";
+
+        minusButton.onclick = function() {
+            
+             videoList.removeChild(listItem);
+             videoListTotalUrlList.removeChild(urlListItem)
+
+        }
+        
+        listItem.appendChild(minusButton);
+        videoList.appendChild(listItem);
+        
+    });
+
+});
