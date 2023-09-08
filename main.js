@@ -10,8 +10,8 @@ let win;
 
 function createWindow() {
     win = new BrowserWindow({
-        width: 400,
-        height: 200,
+        width: 800,
+        height: 600,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
@@ -84,4 +84,9 @@ async function fetchVideoTitle(totalUrl) {
     const response = await axios.get(totalUrl);
     const match = response.data.match(/<title>(.*?)<\/title>/);
     return match && match[1] ? match[1].replace(" - YouTube", "").trim() : videoId;
+
 }
+
+ipcMain.handle('fetch-video-title', async (event,url)=>{
+    return fetchVideoTitle(url)
+})
